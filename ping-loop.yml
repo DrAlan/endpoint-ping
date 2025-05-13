@@ -1,0 +1,41 @@
+name: ping-loop
+
+# Стартуємо тільки вручну або програмно
+on:
+  workflow_dispatch:
+
+permissions:
+  # треба, щоб workflow міг викликати сам себе
+  actions: write
+  contents: read
+
+concurrency:
+  group: ping-loop           # не даємо кільком циклам іти паралельно
+  cancel-in-progress: false  # новий run стає в чергу
+
+jobs:
+  loop:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Install deps
+        run: pip install --quiet requests
+
+      - name: Call endpoints
+        run: python ping.py
+
+      # ─── Пауза 4 год 10 хв  (= 15 000 с) ───
+      - name: Wait 4h10m
+        run: |
+          echo "Sleeping 15000 s (4 h 10 min)"
+          sleep 15000
+
+      # ─── Запускаємо workflow знову ───
+      - name: Re-queue myself
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}   # already has actions:write
+        run: |
+          echo "Triggering next run…"
+          gh workflow run ping-loop.yml --ref ${{ github.ref }}
