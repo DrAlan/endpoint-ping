@@ -1,17 +1,15 @@
 name: ping-loop
-
-# Стартуємо тільки вручну або програмно
+# Стартуємо вручну один раз → далі job сама себе перезапускає
 on:
   workflow_dispatch:
 
 permissions:
-  # треба, щоб workflow міг викликати сам себе
-  actions: write
+  actions: write     # дозвіл, щоб викликати gh workflow run
   contents: read
 
 concurrency:
-  group: ping-loop           # не даємо кільком циклам іти паралельно
-  cancel-in-progress: false  # новий run стає в чергу
+  group: ping-loop
+  cancel-in-progress: false   # новий запуск чекає завершення попереднього
 
 jobs:
   loop:
@@ -20,22 +18,29 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Install deps
+      # відновлюємо CSV із Secret у файл
+      - name: Restore endpoints.csv from secret
+        run: echo "$ENDPOINTS_CSV" > endpoints.csv
+        env:
+          ENDPOINTS_CSV: ${{ secrets.ENDPOINTS_CSV }}
+
+      - name: Install Python deps
         run: pip install --quiet requests
 
       - name: Call endpoints
         run: python ping.py
 
-      # ─── Пауза 4 год 10 хв  (= 15 000 с) ───
-      - name: Wait 4h10m
+      # 4 год 10 хв (15 000 с) + випадковий jitter 0-10 хв
+      - name: Wait 4 h 10 m + random jitter
         run: |
-          echo "Sleeping 15000 s (4 h 10 min)"
-          sleep 15000
+          BASE=15000                 # 4 год 10 хв
+          JITTER=$(( RANDOM % 601 )) # 0-600 с
+          SLEEP=$(( BASE + JITTER ))
+          echo "Sleeping $SLEEP seconds"
+          sleep "$SLEEP"
 
-      # ─── Запускаємо workflow знову ───
-      - name: Re-queue myself
+      # самозапуск
+      - name: Trigger next run
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}   # already has actions:write
-        run: |
-          echo "Triggering next run…"
-          gh workflow run ping-loop.yml --ref ${{ github.ref }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run ping-loop.yml --ref ${{ github.ref }}
