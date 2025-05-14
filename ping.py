@@ -74,7 +74,7 @@ def call(row: dict, row_num: int):
         )
         stamp = datetime.datetime.utcnow().isoformat(timespec="seconds")
         # print(f"{stamp}  {method} {url} → {r.status_code}")
-        print(f"{method} {url}: {e}{body}", file=sys.stderr)
+        print(f"{method} {url}: {body}", file=sys.stderr)
         # вважаємо критичним лише 5xx
         r.raise_for_status()
     except Exception as e:
