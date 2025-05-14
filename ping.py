@@ -73,12 +73,12 @@ def call(row: dict, row_num: int):
             allow_redirects=True,
         )
         stamp = datetime.datetime.utcnow().isoformat(timespec="seconds")
-        print(f"{stamp}  {method} {url} → {r.status_code}")
+        # print(f"{stamp}  {method} {url} → {r.status_code}")
+        print(f"{method} {url}: {e}{body}", file=sys.stderr)
         # вважаємо критичним лише 5xx
-        if r.status_code >= 500:
-            r.raise_for_status()
+        r.raise_for_status()
     except Exception as e:
-        print(f"❌ {method} {url}: {e}", file=sys.stderr)
+        print(f"❌ {method} {url}: {e}{body}", file=sys.stderr)
 
 def main() -> None:
     if not os.path.isfile(CONFIG):
