@@ -49,6 +49,7 @@ def json_from(raw: str):
 
 # ────────────────────────────────────────────────────────────── main ────
 def call(row: dict, row_num: int):
+    print(f"⏭️  Row: {row}")
     # пропускаємо неповні записи
     if any(not row.get(col) for col in REQUIRED_COLS):
         print(f"⏭️  Row {row_num}: пропущено — бракує method/url")
